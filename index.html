@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Magic Party (título provisional)</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main>
+    <!-- Pantalla de configuración (sprint 0: solo la carga del pool) -->
+    <section id="pantalla-config" class="pantalla">
+      <h1>Magic Party</h1>
+      <label for="query">Lista (búsqueda de Scryfall)</label>
+      <input id="query" type="text" value="set:ltr lang:es" spellcheck="false">
+      <label for="jugadores">Jugadores (uno por línea) — se usa en el sprint 1</label>
+      <textarea id="jugadores" rows="4">Kevin</textarea>
+      <button id="btn-cargar">Cargar pool</button>
+      <p id="estado" aria-live="polite"></p>
+    </section>
+
+    <!-- Pantalla de prueba: muestra una ilustración del pool -->
+    <section id="pantalla-prueba" class="pantalla" hidden>
+      <img id="arte" alt="Ilustración de la carta">
+      <p id="artista" class="artista"></p>
+      <div id="datos" class="datos" hidden></div>
+      <div class="controles">
+        <button id="btn-resolver">Resolver</button>
+        <button id="btn-siguiente">Siguiente</button>
+        <button id="btn-volver" class="secundario">Volver</button>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    Magic Party is unofficial Fan Content permitted under the Fan Content Policy.
+    Not approved/endorsed by Wizards. Portions of the materials used are property of
+    Wizards of the Coast. ©Wizards of the Coast LLC. Datos e imágenes: Scryfall.
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>

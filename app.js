@@ -89,29 +89,13 @@ function mezclar(lista) {
 }
 
 const NOMBRES_COLOR = { W: 'Blanco', U: 'Azul', B: 'Negro', R: 'Rojo', G: 'Verde' };
-const textoColor = (cols) => (cols.length ? cols.map((c) => NOMBRES_COLOR[c]).join(' / ') : 'Incolora');
+const ORDEN_WUBRG = 'WUBRG';
+// Scryfall no garantiza el orden: se muestran en el orden clásico de Magic (blanco, azul, negro, rojo, verde)
+const textoColor = (cols) => (cols.length
+  ? [...cols].sort((a, b) => ORDEN_WUBRG.indexOf(a) - ORDEN_WUBRG.indexOf(b)).map((c) => NOMBRES_COLOR[c]).join(' / ')
+  : 'Incolora');
 
-// ---------- Estado de la sesión ----------
-
-const estado = {
-  jugadores: [],          // [{ nombre, puntos }]
-  pool: [],               // cartas mezcladas de la lista actual
-  indice: 0,
-  ronda: 0,               // rondas jugadas en toda la sesión
-  vistas: new Set(),      // ilustraciones ya mostradas (no se repiten en la sesión)
-};
-
-/**
- * Lee los nombres del cuadro de texto. Conserva los puntos de quien ya estaba
- * (así se puede cambiar de lista o añadir a alguien sin perder el marcador).
- */
-function actualizarJugadores(texto) {
-  const nombres = [...new Set(texto.split('\n').map((n) => n.trim()).filter(Boolean))];
-  const previos = new Map(estado.jugadores.map((j) => [j.nombre, j.puntos]));
-  estado.jugadores = nombres.map((nombre) => ({ nombre, puntos: previos.get(nombre) ?? 0 }));
-}
-
-// ---------- Interfaz ----------
+// ---------- Utilidades de interfaz ----------
 
 const $ = (id) => document.getElementById(id);
 
@@ -132,20 +116,99 @@ $('arte').addEventListener('load', (e) => {
   img.style.width = `${(img.naturalWidth * ESCALA_MAX) / devicePixelRatio}px`;
 });
 
+// ---------- Constructor de búsqueda por campos ----------
+
+/** Traduce los campos del formulario a una query de Scryfall. */
+function construirQuery() {
+  const partes = [];
+  const tipo = $('f-tipo').value;
+  if (tipo) partes.push(`t:${tipo}`);
+
+  // El subtipo se escribe libre; se quitan comillas y se agrupa si tiene espacios
+  const subtipo = $('f-subtipo').value.trim().replace(/"/g, '');
+  if (subtipo) partes.push(/\s/.test(subtipo) ? `t:"${subtipo}"` : `t:${subtipo}`);
+
+  const colores = [...document.querySelectorAll('.colores input:checked')].map((c) => c.value);
+  if (colores.includes('c')) partes.push('c:c'); // incolora excluye a los demás colores
+  else if (colores.length) partes.push(`c${$('f-color-modo').value}${colores.join('')}`);
+
+  const coste = $('f-coste').value;
+  if (coste !== '') partes.push(`mv${$('f-coste-op').value}${Number(coste)}`);
+
+  const idioma = $('f-idioma').value;
+  if (idioma) partes.push(`lang:${idioma}`);
+  return partes.join(' ');
+}
+
+// ---------- Estado de la sesión ----------
+
+const CATEGORIAS = ['nombre', 'color', 'edicion'];
+
+// Iconos en SVG propio (la CSP no deja cargar fuentes de iconos externas)
+const ICONOS = {
+  nombre: {
+    titulo: 'Nombre de la carta',
+    svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><text x="12" y="17.5" text-anchor="middle" font-size="15" font-weight="800" font-family="Georgia, serif" fill="currentColor">Aa</text></svg>',
+  },
+  color: {
+    titulo: 'Color de la carta',
+    svg: '<svg viewBox="0 0 24 24" aria-hidden="true">'
+      + '<circle cx="12" cy="5" r="3.2" fill="#f8f3d6"/><circle cx="18.7" cy="9.9" r="3.2" fill="#3b8fd6"/>'
+      + '<circle cx="16.1" cy="17.7" r="3.2" fill="#8a7f88"/><circle cx="7.9" cy="17.7" r="3.2" fill="#e0443a"/>'
+      + '<circle cx="5.3" cy="9.9" r="3.2" fill="#2f9e5b"/></svg>',
+  },
+  edicion: {
+    titulo: 'Edición de la carta',
+    svg: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 2 8l10 5 10-5-10-5zM2 12l10 5 10-5M2 16l10 5 10-5" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>',
+  },
+};
+
+const ceroAciertos = () => ({ nombre: 0, color: 0, edicion: 0 });
+const total = (j) => CATEGORIAS.reduce((s, c) => s + j.aciertos[c], 0);
+
+const estado = {
+  jugadores: [],          // [{ nombre, aciertos: { nombre, color, edicion } }]
+  pool: [],               // cartas mezcladas de la lista actual
+  indice: 0,
+  cartas: 0,              // cartas mostradas en la partida (para el contador "Carta N")
+  resueltas: 0,           // cartas resueltas: las que cuentan como jugadas en las estadísticas
+  vistas: new Set(),      // ilustraciones ya mostradas (no se repiten en la sesión)
+  marcas: new Set(),      // aciertos marcados en la carta actual: "jugador:categoria"
+};
+
+/**
+ * Lee los nombres del cuadro de texto. Conserva los aciertos de quien ya estaba
+ * (así se puede cambiar de lista o añadir a alguien sin perder el marcador).
+ */
+function actualizarJugadores(texto) {
+  const nombres = [...new Set(texto.split('\n').map((n) => n.trim()).filter(Boolean))];
+  const previos = new Map(estado.jugadores.map((j) => [j.nombre, j.aciertos]));
+  estado.jugadores = nombres.map((nombre) => ({ nombre, aciertos: previos.get(nombre) ?? ceroAciertos() }));
+}
+
+function nuevaPartida() {
+  estado.jugadores.forEach((j) => (j.aciertos = ceroAciertos()));
+  estado.cartas = 0;
+  estado.resueltas = 0;
+  estado.marcas.clear();
+}
+
+// ---------- Interfaz ----------
+
 function mostrarPantalla(id) {
   document.querySelectorAll('.pantalla').forEach((p) => (p.hidden = p.id !== id));
-  $('btn-reiniciar').hidden = !estado.jugadores.some((j) => j.puntos !== 0);
+  $('btn-reiniciar').hidden = !estado.jugadores.some((j) => total(j) > 0);
 }
 
 function pintarMarcador(sumado = -1) {
   const lista = $('marcador');
   lista.replaceChildren();
-  const maximo = Math.max(...estado.jugadores.map((j) => j.puntos));
+  const maximo = Math.max(...estado.jugadores.map(total));
 
   estado.jugadores.forEach((j, i) => {
     const li = document.createElement('li');
     li.className = 'jugador';
-    if (maximo > 0 && j.puntos === maximo) li.classList.add('lider');
+    if (maximo > 0 && total(j) === maximo) li.classList.add('lider');
     if (i === sumado) li.classList.add('sumado');
 
     const nombre = document.createElement('span');
@@ -153,20 +216,24 @@ function pintarMarcador(sumado = -1) {
     nombre.textContent = j.nombre;
     const puntos = document.createElement('span');
     puntos.className = 'puntos';
-    puntos.textContent = j.puntos;
+    puntos.textContent = total(j);
 
-    const sumas = document.createElement('div');
-    sumas.className = 'sumas';
-    for (const n of [1, 2, 3, -1]) {
+    // Un botón por categoría: se pulsa para dar el punto y otra vez para quitarlo (solo en esta carta)
+    const aciertos = document.createElement('div');
+    aciertos.className = 'aciertos';
+    for (const cat of CATEGORIAS) {
       const b = document.createElement('button');
-      b.textContent = n > 0 ? `+${n}` : '−1';
+      b.className = `acierto ${cat}`;
+      b.innerHTML = ICONOS[cat].svg; // contenido fijo del propio código, no datos externos
       b.dataset.jugador = i;
-      b.dataset.puntos = n;
-      b.setAttribute('aria-label', `${n > 0 ? 'Sumar' : 'Restar'} ${Math.abs(n)} a ${j.nombre}`);
-      if (n < 0) b.className = 'secundario restar';
-      sumas.append(b);
+      b.dataset.cat = cat;
+      b.dataset.tip = ICONOS[cat].titulo;
+      const marcado = estado.marcas.has(`${i}:${cat}`);
+      b.setAttribute('aria-pressed', marcado);
+      b.setAttribute('aria-label', `${ICONOS[cat].titulo}: punto para ${j.nombre}`);
+      aciertos.append(b);
     }
-    li.append(nombre, puntos, sumas);
+    li.append(nombre, puntos, aciertos);
     lista.append(li);
   });
 }
@@ -174,14 +241,16 @@ function pintarMarcador(sumado = -1) {
 function mostrarCarta() {
   const c = estado.pool[estado.indice];
   estado.vistas.add(c.ilustracion);
-  estado.ronda++;
+  estado.cartas++;
+  estado.marcas.clear();
+  pintarMarcador();
   $('pantalla-juego').classList.remove('resuelta');
   mostrarImagen(c.arte, 'Ilustración de la carta');
   $('artista').textContent = `Ilustración: ${c.artista}`;
   $('datos').hidden = true;
   $('btn-resolver').disabled = false;
   const quedan = estado.pool.length - estado.indice - 1;
-  $('ronda').textContent = `Ronda ${estado.ronda} · quedan ${quedan} cartas en la lista`;
+  $('ronda').textContent = `Carta ${estado.cartas} · quedan ${quedan} en la lista`;
   $('btn-resolver').focus();
 
   // Precarga la siguiente ilustración para que en la tele no haya espera
@@ -210,18 +279,71 @@ function resolver() {
   }
   datos.hidden = false;
   $('btn-resolver').disabled = true;
+  estado.resueltas++;
   $('btn-siguiente').focus();
 }
 
 function siguiente() {
   if (estado.indice + 1 >= estado.pool.length) {
-    $('estado').textContent = 'Se ha acabado la lista. Elige otra para seguir; el marcador se mantiene.';
-    mostrarPantalla('pantalla-config');
-    $('query').select();
+    mostrarEstadisticas('Se ha acabado la lista.');
     return;
   }
   estado.indice++;
   mostrarCarta();
+}
+
+const NOMBRE_CAT = { nombre: 'Nombre', color: 'Color', edicion: 'Edición' };
+
+/** Pantalla final: aciertos de cada uno por categoría, su fuerte y quién destaca en cada una. */
+function mostrarEstadisticas(motivo = '') {
+  const jugadores = [...estado.jugadores].sort((a, b) => total(b) - total(a));
+  const tbody = $('tabla-estadisticas');
+  tbody.replaceChildren();
+
+  for (const j of jugadores) {
+    const tr = document.createElement('tr');
+    const celda = (texto, clase) => {
+      const td = document.createElement('td');
+      td.textContent = texto;
+      if (clase) td.className = clase;
+      tr.append(td);
+    };
+    const th = document.createElement('th');
+    th.scope = 'row';
+    th.textContent = j.nombre;
+    tr.append(th);
+
+    const mejor = Math.max(...CATEGORIAS.map((c) => j.aciertos[c]));
+    for (const cat of CATEGORIAS) celda(j.aciertos[cat], mejor > 0 && j.aciertos[cat] === mejor ? 'fuerte' : '');
+    celda(total(j), 'total');
+    const fuertes = CATEGORIAS.filter((c) => mejor > 0 && j.aciertos[c] === mejor).map((c) => NOMBRE_CAT[c]);
+    celda(fuertes.length ? fuertes.join(' y ') : '—');
+    tbody.append(tr);
+  }
+
+  // Quién ha acertado más en cada categoría (empates incluidos)
+  const destacados = $('destacados');
+  destacados.replaceChildren();
+  for (const cat of CATEGORIAS) {
+    const max = Math.max(0, ...estado.jugadores.map((j) => j.aciertos[cat]));
+    if (!max) continue;
+    const quienes = estado.jugadores.filter((j) => j.aciertos[cat] === max).map((j) => j.nombre);
+    const li = document.createElement('li');
+    li.innerHTML = ICONOS[cat].svg; // icono fijo
+    li.append(` Más aciertos de ${NOMBRE_CAT[cat].toLowerCase()}: ${quienes.join(', ')} (${max})`);
+    destacados.append(li);
+  }
+
+  $('resumen').textContent = `${motivo ? `${motivo} ` : ''}${estado.resueltas} cartas jugadas.`;
+  $('btn-seguir').hidden = estado.indice + 1 >= estado.pool.length;
+  mostrarPantalla('pantalla-estadisticas');
+  $(($('btn-seguir').hidden ? 'btn-otra-lista' : 'btn-seguir')).focus();
+}
+
+function irAConfig(mensaje) {
+  $('jugadores').value = estado.jugadores.map((j) => j.nombre).join('\n');
+  $('estado').textContent = mensaje;
+  mostrarPantalla('pantalla-config');
 }
 
 async function empezar() {
@@ -234,7 +356,7 @@ async function empezar() {
   boton.disabled = true;
   $('estado').textContent = 'Cargando…';
   try {
-    const { cartas, total } = await cargarPool(query, (n, t) => {
+    const { cartas, total: totalScryfall } = await cargarPool(query, (n, t) => {
       $('estado').textContent = `Cargando… ${n} / ${t}`;
     });
     // Fuera las ilustraciones ya vistas en la sesión (y duplicados dentro de la lista)
@@ -250,11 +372,10 @@ async function empezar() {
     estado.pool = mezclar(nuevas);
     estado.indice = 0;
     const avisos = [];
-    if (cartas.length < total) avisos.push(`limitada a ${cartas.length} de ${total}`);
+    if (cartas.length < totalScryfall) avisos.push(`limitada a ${cartas.length} de ${totalScryfall}`);
     if (nuevas.length < cartas.length) avisos.push(`${cartas.length - nuevas.length} ya vistas`);
     $('estado').textContent = `${nuevas.length} cartas${avisos.length ? ` (${avisos.join(', ')})` : ''}.`;
 
-    pintarMarcador();
     mostrarPantalla('pantalla-juego');
     mostrarCarta();
   } catch (e) {
@@ -269,25 +390,52 @@ async function empezar() {
 $('btn-cargar').addEventListener('click', empezar);
 $('btn-resolver').addEventListener('click', resolver);
 $('btn-siguiente').addEventListener('click', siguiente);
+$('btn-terminar').addEventListener('click', () => mostrarEstadisticas());
+$('btn-volver').addEventListener('click', () => irAConfig('El marcador se mantiene al cambiar de lista.'));
 
-$('btn-volver').addEventListener('click', () => {
-  $('jugadores').value = estado.jugadores.map((j) => j.nombre).join('\n');
-  $('estado').textContent = 'El marcador se mantiene al cambiar de lista.';
-  mostrarPantalla('pantalla-config');
+$('btn-seguir').addEventListener('click', () => {
+  mostrarPantalla('pantalla-juego');
+  siguiente();
 });
-
+$('btn-otra-lista').addEventListener('click', () => irAConfig('El marcador se mantiene al cambiar de lista.'));
+$('btn-nueva').addEventListener('click', () => {
+  nuevaPartida();
+  irAConfig('Nueva partida: marcador a cero. Las cartas ya vistas no se repiten hasta recargar la página.');
+});
 $('btn-reiniciar').addEventListener('click', () => {
-  estado.jugadores.forEach((j) => (j.puntos = 0));
-  $('estado').textContent = 'Marcador a cero.';
-  mostrarPantalla('pantalla-config');
+  nuevaPartida();
+  irAConfig('Marcador a cero.');
 });
 
-// Un único manejador para todos los botones de puntos del marcador
+// Panel de búsqueda por campos: se abre/cierra y enseña la query que generará
+$('btn-filtros').addEventListener('click', () => {
+  const abierto = $('filtros').hidden;
+  $('filtros').hidden = !abierto;
+  $('btn-filtros').setAttribute('aria-expanded', abierto);
+  if (abierto) $('f-vista').textContent = construirQuery() || '(rellena algún campo)';
+});
+$('filtros').addEventListener('input', () => {
+  $('f-vista').textContent = construirQuery() || '(rellena algún campo)';
+});
+$('btn-aplicar-filtros').addEventListener('click', () => {
+  const query = construirQuery();
+  if (!query) return;
+  $('query').value = query;
+  $('filtros').hidden = true;
+  $('btn-filtros').setAttribute('aria-expanded', false);
+  $('estado').textContent = 'Búsqueda lista. Pulsa Empezar.';
+});
+
+// Un único manejador para los botones de acierto: alterna el punto de esa categoría en esta carta
 $('marcador').addEventListener('click', (e) => {
-  const b = e.target.closest('button[data-jugador]');
+  const b = e.target.closest('button[data-cat]');
   if (!b) return;
   const i = Number(b.dataset.jugador);
-  const n = Number(b.dataset.puntos);
-  estado.jugadores[i].puntos = Math.max(0, estado.jugadores[i].puntos + n);
-  pintarMarcador(n > 0 ? i : -1);
+  const cat = b.dataset.cat;
+  const clave = `${i}:${cat}`;
+  const marcar = !estado.marcas.has(clave);
+  if (marcar) estado.marcas.add(clave);
+  else estado.marcas.delete(clave);
+  estado.jugadores[i].aciertos[cat] += marcar ? 1 : -1;
+  pintarMarcador(marcar ? i : -1);
 });

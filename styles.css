@@ -26,8 +26,8 @@ main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .pantalla[hidden] { display: none; }
 
 /* ---------- Configuración ---------- */
-.config { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; }
-.config > * { width: 100%; max-width: 40rem; }
+.config { display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 0.6rem; overflow-y: auto; }
+.config > * { width: 100%; max-width: 44rem; }
 .config .controles { justify-content: center; }
 h1 { font-size: 3rem; margin: 0 0 1rem; color: var(--acento); text-align: center; }
 label { color: var(--tenue); }
@@ -75,9 +75,64 @@ button:focus-visible { outline: 4px solid #fff; outline-offset: 2px; }
 .jugador.lider { border-color: var(--acento); }
 .jugador .nombre { font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; }
 .jugador .puntos { font-size: 1.7rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
-.jugador .sumas { grid-column: 1 / -1; display: flex; gap: 0.35rem; }
-.jugador .sumas button { flex: 1; padding: 0.2rem 0; font-size: 0.85rem; }
-.jugador .sumas .restar { flex: 0.7; }
+/* Botones de acierto: un icono por categoría; pulsado = punto dado en esta carta */
+.jugador .aciertos { grid-column: 1 / -1; display: flex; gap: 0.35rem; }
+.acierto {
+  position: relative; flex: 1; display: grid; place-items: center;
+  padding: 0.2rem 0; background: #2a2a38; color: var(--texto);
+  border: 2px solid var(--borde);
+}
+.acierto svg { width: 1.6rem; height: 1.6rem; }
+.acierto:hover { border-color: var(--tenue); }
+.acierto[aria-pressed="true"] { background: var(--acento); border-color: var(--acento); color: #111; }
+
+/* Descripción al pasar el ratón (aparece al instante, a diferencia de title) */
+[data-tip]:hover::after, [data-tip]:focus-visible::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 0.3rem); left: 50%; transform: translateX(-50%);
+  white-space: nowrap; z-index: 2; pointer-events: none;
+  padding: 0.2rem 0.5rem; border-radius: 0.3rem;
+  background: #fff; color: #111; font-size: 0.7rem; font-weight: 600;
+}
+
+/* ---------- Búsqueda por campos ---------- */
+.fila-query { display: flex; gap: 0.6rem; }
+.fila-query input { flex: 1; min-width: 0; }
+.fila-query button { white-space: nowrap; font-size: 0.8rem; }
+.filtros {
+  display: grid; grid-template-columns: auto 1fr; gap: 0.5rem 1rem; align-items: center;
+  border: 2px solid var(--borde); border-radius: 0.5rem; padding: 0.8rem 1rem; font-size: 0.85rem;
+}
+.filtros[hidden] { display: none; }
+.filtros legend { color: var(--acento); padding: 0 0.4rem; }
+.filtros .etiqueta, .filtros label { color: var(--tenue); }
+.filtros select, .filtros input { font: inherit; padding: 0.3rem 0.5rem; background: #1c1c26; color: var(--texto); border: 2px solid var(--borde); border-radius: 0.4rem; }
+.filtros .fila { display: flex; gap: 0.5rem; }
+.filtros .fila input { width: 8rem; }
+.colores { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.chip { display: inline-flex; align-items: center; gap: 0.3rem; padding: 0.2rem 0.6rem; border: 2px solid var(--borde); border-radius: 2rem; cursor: pointer; color: var(--texto) !important; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip:has(input:checked) { border-color: var(--acento); background: #3a3220; }
+.chip:has(input:focus-visible) { outline: 3px solid #fff; }
+.mana { width: 0.9rem; height: 0.9rem; border-radius: 50%; border: 1px solid #0006; }
+.mana.w { background: #f8f3d6; } .mana.u { background: #3b8fd6; } .mana.b { background: #4a4348; }
+.mana.r { background: #e0443a; } .mana.g { background: #2f9e5b; } .mana.c { background: #c9c3bd; }
+.vista-previa { grid-column: 1 / -1; margin: 0.3rem 0 0; color: var(--tenue); }
+.vista-previa code { color: var(--acento); font-size: 1rem; }
+.filtros .controles { grid-column: 1 / -1; }
+
+/* ---------- Estadísticas ---------- */
+.estadisticas { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.8rem; }
+.resumen { margin: 0; color: var(--tenue); }
+table { border-collapse: collapse; font-size: 1.1rem; min-width: 60%; }
+th, td { padding: 0.4rem 1rem; text-align: center; border-bottom: 2px solid var(--borde); }
+thead th { color: var(--tenue); font-size: 0.85rem; }
+tbody th { text-align: left; }
+td.fuerte { color: var(--acento); font-weight: 800; }
+td.total { font-weight: 800; font-size: 1.4rem; }
+.destacados { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 0.3rem; }
+.destacados li { display: flex; align-items: center; gap: 0.4rem; }
+.destacados svg { width: 1.4rem; height: 1.4rem; color: var(--acento); }
 
 /* Destello al sumar puntos, para que se vea desde el sofá */
 @keyframes destello { from { background: var(--acento); color: #111; } }

@@ -15,13 +15,92 @@
     <!-- Configuración: lista (query de Scryfall) y jugadores -->
     <section id="pantalla-config" class="pantalla config">
       <h1>Magic Party</h1>
+
       <label for="query">Lista (búsqueda de Scryfall)</label>
-      <input id="query" type="text" value="set:ltr lang:es" spellcheck="false">
+      <div class="fila-query">
+        <input id="query" type="text" value="set:ltr lang:es" spellcheck="false">
+        <button id="btn-filtros" class="secundario" aria-expanded="false" aria-controls="filtros">Búsqueda por campos</button>
+      </div>
+
+      <!-- Constructor de búsqueda: las etiquetas en castellano, los valores en la sintaxis de Scryfall -->
+      <fieldset id="filtros" class="filtros" hidden>
+        <legend>Búsqueda por campos</legend>
+
+        <label for="f-tipo">Tipo</label>
+        <select id="f-tipo">
+          <option value="">Cualquiera</option>
+          <option value="creature">Criatura</option>
+          <option value="instant">Instantáneo</option>
+          <option value="sorcery">Conjuro</option>
+          <option value="artifact">Artefacto</option>
+          <option value="enchantment">Encantamiento</option>
+          <option value="planeswalker">Planeswalker</option>
+          <option value="land">Tierra</option>
+          <option value="battle">Batalla</option>
+          <option value="legendary">Legendaria (cualquier tipo)</option>
+        </select>
+
+        <label for="f-subtipo">Subtipo</label>
+        <input id="f-subtipo" type="text" list="subtipos" placeholder="dragon, elf, zombie… (o en castellano)" spellcheck="false">
+        <datalist id="subtipos">
+          <option value="angel">Ángel</option>
+          <option value="beast">Bestia</option>
+          <option value="demon">Demonio</option>
+          <option value="dragon">Dragón</option>
+          <option value="elf">Elfo</option>
+          <option value="goblin">Trasgo</option>
+          <option value="human">Humano</option>
+          <option value="merfolk">Tritón</option>
+          <option value="vampire">Vampiro</option>
+          <option value="wizard">Hechicero</option>
+          <option value="warrior">Guerrero</option>
+          <option value="zombie">Zombie</option>
+          <option value="equipment">Equipo</option>
+          <option value="aura">Aura</option>
+        </datalist>
+
+        <span class="etiqueta" id="et-color">Color</span>
+        <div class="colores" role="group" aria-labelledby="et-color">
+          <label class="chip"><input type="checkbox" value="w"><span class="mana w"></span>Blanco</label>
+          <label class="chip"><input type="checkbox" value="u"><span class="mana u"></span>Azul</label>
+          <label class="chip"><input type="checkbox" value="b"><span class="mana b"></span>Negro</label>
+          <label class="chip"><input type="checkbox" value="r"><span class="mana r"></span>Rojo</label>
+          <label class="chip"><input type="checkbox" value="g"><span class="mana g"></span>Verde</label>
+          <label class="chip"><input type="checkbox" value="c"><span class="mana c"></span>Incolora</label>
+          <select id="f-color-modo" aria-label="Cómo se combinan los colores">
+            <option value=">=">al menos estos</option>
+            <option value="=">exactamente estos</option>
+          </select>
+        </div>
+
+        <label for="f-coste">Coste (valor de maná)</label>
+        <div class="fila">
+          <select id="f-coste-op" aria-label="Comparación del coste">
+            <option value="=">igual a</option>
+            <option value="<=">como mucho</option>
+            <option value=">=">al menos</option>
+          </select>
+          <input id="f-coste" type="number" min="0" max="20" placeholder="cualquiera">
+        </div>
+
+        <label for="f-idioma">Idioma</label>
+        <select id="f-idioma">
+          <option value="es">Castellano</option>
+          <option value="en">Inglés (más cartas)</option>
+          <option value="">Cualquiera</option>
+        </select>
+
+        <p class="vista-previa">Búsqueda: <code id="f-vista"></code></p>
+        <div class="controles">
+          <button id="btn-aplicar-filtros">Usar esta búsqueda</button>
+        </div>
+      </fieldset>
+
       <label for="jugadores">Jugadores (uno por línea)</label>
       <textarea id="jugadores" rows="5" spellcheck="false"></textarea>
       <div class="controles">
         <button id="btn-cargar">Empezar</button>
-        <button id="btn-reiniciar" class="secundario" hidden>Poner marcador a cero</button>
+        <button id="btn-reiniciar" class="secundario" hidden>Nueva partida (marcador a cero)</button>
       </div>
       <p id="estado" aria-live="polite"></p>
     </section>
@@ -37,12 +116,38 @@
           <button id="btn-resolver">Resolver</button>
           <button id="btn-siguiente">Siguiente</button>
           <button id="btn-volver" class="secundario">Cambiar lista</button>
+          <button id="btn-terminar" class="secundario">Terminar partida</button>
         </div>
       </div>
       <aside class="marcador">
         <h2>Marcador</h2>
         <ol id="marcador"></ol>
       </aside>
+    </section>
+
+    <!-- Estadísticas al terminar la partida -->
+    <section id="pantalla-estadisticas" class="pantalla estadisticas" hidden>
+      <h1>Estadísticas de la partida</h1>
+      <p id="resumen" class="resumen"></p>
+      <table>
+        <thead>
+          <tr>
+            <th scope="col">Jugador</th>
+            <th scope="col" data-cat="nombre">Nombre</th>
+            <th scope="col" data-cat="color">Color</th>
+            <th scope="col" data-cat="edicion">Edición</th>
+            <th scope="col">Total</th>
+            <th scope="col">Su fuerte</th>
+          </tr>
+        </thead>
+        <tbody id="tabla-estadisticas"></tbody>
+      </table>
+      <ul id="destacados" class="destacados"></ul>
+      <div class="controles">
+        <button id="btn-seguir">Seguir jugando</button>
+        <button id="btn-otra-lista" class="secundario">Cambiar lista</button>
+        <button id="btn-nueva" class="secundario">Nueva partida</button>
+      </div>
     </section>
   </main>
 

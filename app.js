@@ -115,6 +115,23 @@ function actualizarJugadores(texto) {
 
 const $ = (id) => document.getElementById(id);
 
+// Cuánto se permite ampliar una imagen sobre sus píxeles reales antes de que se note borrosa
+const ESCALA_MAX = 1.15;
+
+/** Cambia la imagen principal; su tamaño se ajusta al cargar (ver listener de 'load'). */
+function mostrarImagen(src, alt) {
+  const img = $('arte');
+  img.style.width = '';
+  img.alt = alt;
+  img.src = src;
+}
+
+// Tamaño en píxeles CSS = píxeles reales × ESCALA_MAX ÷ escalado de pantalla (Windows al 150 %, 4K…)
+$('arte').addEventListener('load', (e) => {
+  const img = e.target;
+  img.style.width = `${(img.naturalWidth * ESCALA_MAX) / devicePixelRatio}px`;
+});
+
 function mostrarPantalla(id) {
   document.querySelectorAll('.pantalla').forEach((p) => (p.hidden = p.id !== id));
   $('btn-reiniciar').hidden = !estado.jugadores.some((j) => j.puntos !== 0);
@@ -159,8 +176,7 @@ function mostrarCarta() {
   estado.vistas.add(c.ilustracion);
   estado.ronda++;
   $('pantalla-juego').classList.remove('resuelta');
-  $('arte').src = c.arte;
-  $('arte').alt = 'Ilustración de la carta';
+  mostrarImagen(c.arte, 'Ilustración de la carta');
   $('artista').textContent = `Ilustración: ${c.artista}`;
   $('datos').hidden = true;
   $('btn-resolver').disabled = false;
@@ -176,8 +192,7 @@ function mostrarCarta() {
 function resolver() {
   const c = estado.pool[estado.indice];
   $('pantalla-juego').classList.add('resuelta');
-  $('arte').src = c.carta;
-  $('arte').alt = `Carta completa: ${c.nombre}`;
+  mostrarImagen(c.carta, `Carta completa: ${c.nombre}`);
 
   // Se construye con textContent: los datos vienen de fuera y no se interpretan como HTML
   const datos = $('datos');

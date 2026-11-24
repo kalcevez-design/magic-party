@@ -1,9 +1,11 @@
 /* Pensado para verse en la tele: letra grande y contraste alto */
 :root {
   --fondo: #0d0d12;
+  --panel: #171720;
   --texto: #f5f5f5;
   --tenue: #a0a0b0;
   --acento: #f0b429;
+  --borde: #3a3a4a;
   font-size: clamp(16px, 1.6vw, 32px);
 }
 
@@ -20,18 +22,21 @@ html, body {
 body { display: flex; flex-direction: column; }
 main { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 
-.pantalla { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; padding: 1rem; min-height: 0; }
+.pantalla { flex: 1; min-height: 0; padding: 1rem; }
 .pantalla[hidden] { display: none; }
 
-h1 { font-size: 3rem; margin: 0 0 1rem; color: var(--acento); }
-
-label { align-self: stretch; max-width: 40rem; margin: 0 auto; width: 100%; color: var(--tenue); }
+/* ---------- Configuración ---------- */
+.config { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.6rem; }
+.config > * { width: 100%; max-width: 40rem; }
+.config .controles { justify-content: center; }
+h1 { font-size: 3rem; margin: 0 0 1rem; color: var(--acento); text-align: center; }
+label { color: var(--tenue); }
 input, textarea {
-  width: 100%; max-width: 40rem;
   font: inherit; padding: 0.5rem 0.7rem;
   background: #1c1c26; color: var(--texto);
-  border: 2px solid #3a3a4a; border-radius: 0.4rem;
+  border: 2px solid var(--borde); border-radius: 0.4rem;
 }
+#estado { text-align: center; min-height: 1.5em; }
 
 button {
   font: inherit; font-weight: 600;
@@ -39,12 +44,42 @@ button {
   background: var(--acento); color: #111;
   border: none; border-radius: 0.4rem; cursor: pointer;
 }
-button.secundario { background: #3a3a4a; color: var(--texto); }
-button:disabled { opacity: 0.5; cursor: wait; }
+button.secundario { background: var(--borde); color: var(--texto); }
+button:disabled { opacity: 0.4; cursor: default; }
+button:focus-visible { outline: 4px solid #fff; outline-offset: 2px; }
+.controles { display: flex; gap: 1rem; flex-wrap: wrap; }
 
-#arte { max-width: 100%; max-height: 70vh; object-fit: contain; border-radius: 0.5rem; }
-.artista { color: var(--tenue); font-size: 0.8rem; margin: 0; }
-.datos { font-size: 1.4rem; text-align: center; }
-.controles { display: flex; gap: 1rem; }
+/* ---------- Juego ---------- */
+.juego { display: grid; grid-template-columns: 1fr minmax(15rem, 26vw); gap: 1rem; }
 
-footer { font-size: 0.55rem; color: var(--tenue); text-align: center; padding: 0.4rem 1rem; }
+.escena { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0.5rem; min-height: 0; }
+.ronda { margin: 0; color: var(--tenue); font-size: 0.8rem; }
+/* El art_crop mide ~626 px: se escala para llenar el hueco disponible */
+#arte { width: 100%; height: 74vh; object-fit: contain; }
+/* Al resolver se muestra la carta completa (vertical), algo más baja para dejar sitio a los datos */
+.resuelta #arte { height: 62vh; }
+.artista { margin: 0; color: var(--tenue); font-size: 0.75rem; }
+.datos { font-size: 1.3rem; text-align: center; line-height: 1.35; }
+.datos strong { font-size: 1.6rem; color: var(--acento); }
+.datos small { color: var(--tenue); }
+
+.marcador { background: var(--panel); border-radius: 0.6rem; padding: 0.8rem; overflow-y: auto; }
+.marcador h2 { margin: 0 0 0.4rem; font-size: 0.9rem; color: var(--tenue); }
+.marcador ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+
+.jugador {
+  display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 0.2rem 0.6rem;
+  padding: 0.3rem 0.6rem; border: 2px solid transparent; border-radius: 0.5rem; background: #1f1f2b;
+}
+.jugador.lider { border-color: var(--acento); }
+.jugador .nombre { font-size: 1.05rem; font-weight: 600; overflow-wrap: anywhere; }
+.jugador .puntos { font-size: 1.7rem; font-weight: 800; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.jugador .sumas { grid-column: 1 / -1; display: flex; gap: 0.35rem; }
+.jugador .sumas button { flex: 1; padding: 0.2rem 0; font-size: 0.85rem; }
+.jugador .sumas .restar { flex: 0.7; }
+
+/* Destello al sumar puntos, para que se vea desde el sofá */
+@keyframes destello { from { background: var(--acento); color: #111; } }
+.jugador.sumado .puntos { animation: destello 0.6s ease-out; border-radius: 0.3rem; }
+
+footer { font-size: 0.55rem; color: var(--tenue); text-align: center; padding: 0.3rem 1rem; }

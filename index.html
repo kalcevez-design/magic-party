@@ -12,27 +12,37 @@
 </head>
 <body>
   <main>
-    <!-- Pantalla de configuración (sprint 0: solo la carga del pool) -->
-    <section id="pantalla-config" class="pantalla">
+    <!-- Configuración: lista (query de Scryfall) y jugadores -->
+    <section id="pantalla-config" class="pantalla config">
       <h1>Magic Party</h1>
       <label for="query">Lista (búsqueda de Scryfall)</label>
       <input id="query" type="text" value="set:ltr lang:es" spellcheck="false">
-      <label for="jugadores">Jugadores (uno por línea) — se usa en el sprint 1</label>
-      <textarea id="jugadores" rows="4">Kevin</textarea>
-      <button id="btn-cargar">Cargar pool</button>
+      <label for="jugadores">Jugadores (uno por línea)</label>
+      <textarea id="jugadores" rows="5" spellcheck="false"></textarea>
+      <div class="controles">
+        <button id="btn-cargar">Empezar</button>
+        <button id="btn-reiniciar" class="secundario" hidden>Poner marcador a cero</button>
+      </div>
       <p id="estado" aria-live="polite"></p>
     </section>
 
-    <!-- Pantalla de prueba: muestra una ilustración del pool -->
-    <section id="pantalla-prueba" class="pantalla" hidden>
-      <img id="arte" alt="Ilustración de la carta">
-      <p id="artista" class="artista"></p>
-      <div id="datos" class="datos" hidden></div>
-      <div class="controles">
-        <button id="btn-resolver">Resolver</button>
-        <button id="btn-siguiente">Siguiente</button>
-        <button id="btn-volver" class="secundario">Volver</button>
+    <!-- Juego: ilustración a la izquierda, marcador a la derecha -->
+    <section id="pantalla-juego" class="pantalla juego" hidden>
+      <div class="escena">
+        <p id="ronda" class="ronda"></p>
+        <img id="arte" alt="Ilustración de la carta">
+        <p id="artista" class="artista"></p>
+        <div id="datos" class="datos" hidden></div>
+        <div class="controles">
+          <button id="btn-resolver">Resolver</button>
+          <button id="btn-siguiente">Siguiente</button>
+          <button id="btn-volver" class="secundario">Cambiar lista</button>
+        </div>
       </div>
+      <aside class="marcador">
+        <h2>Marcador</h2>
+        <ol id="marcador"></ol>
+      </aside>
     </section>
   </main>
 

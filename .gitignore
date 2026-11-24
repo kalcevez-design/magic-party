@@ -13,3 +13,6 @@ Thumbs.db
 node_modules/
 .vscode/
 .idea/
+
+# Brief privado del proyecto (solo en local)
+CLAUDE.md

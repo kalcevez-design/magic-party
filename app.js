@@ -19,12 +19,27 @@ async function cargarPool(query, alProgresar = () => {}) {
 
   for (let pagina = 1; url && pagina <= MAX_PAGINAS; pagina++) {
     if (pagina > 1) await esperar(PAUSA_MS);
-    const resp = await fetch(url, { headers: { Accept: 'application/json' } });
-    const json = await resp.json();
+    // Solo se sigue la paginación si apunta a la API de Scryfall
+    if (!url.startsWith(`${API}/`)) throw new Error('Respuesta inesperada de Scryfall.');
 
-    if (json.object === 'error') {
-      if (json.status === 404) throw new Error('La búsqueda no ha devuelto ninguna carta.');
-      throw new Error(`Scryfall: ${json.details}`);
+    let resp;
+    try {
+      resp = await fetch(url, { headers: { Accept: 'application/json' } });
+    } catch {
+      throw new Error('No se ha podido conectar con Scryfall. ¿Hay conexión a internet?');
+    }
+    if (resp.status === 429) throw new Error('Scryfall pide esperar un poco. Prueba de nuevo en un minuto.');
+
+    let json;
+    try {
+      json = await resp.json();
+    } catch {
+      throw new Error(`Scryfall ha respondido con un error (${resp.status}).`);
+    }
+
+    if (!resp.ok || json.object === 'error') {
+      if (resp.status === 404) throw new Error('La búsqueda no ha devuelto ninguna carta.');
+      throw new Error(`Scryfall: ${json.details || `error ${resp.status}`}`);
     }
 
     total = json.total_cards;
@@ -118,10 +133,21 @@ $('btn-cargar').addEventListener('click', async () => {
 $('btn-resolver').addEventListener('click', () => {
   const c = estado.pool[estado.indice];
   $('arte').src = c.carta;
-  const nombre = c.nombreImpreso && c.nombreImpreso !== c.nombre
-    ? `${c.nombreImpreso} <small>(${c.nombre})</small>` : c.nombre;
-  $('datos').innerHTML = `<strong>${nombre}</strong><br>${c.edicion} · ${c.codigo} · ${c.fecha.slice(0, 4)}<br>${textoColor(c.colores)}`;
-  $('datos').hidden = false;
+  // Se construye con textContent: los datos vienen de fuera y no se interpretan como HTML
+  const datos = $('datos');
+  datos.replaceChildren();
+  const nombre = document.createElement('strong');
+  nombre.textContent = c.nombreImpreso || c.nombre;
+  datos.append(nombre);
+  if (c.nombreImpreso && c.nombreImpreso !== c.nombre) {
+    const original = document.createElement('small');
+    original.textContent = ` (${c.nombre})`;
+    datos.append(original);
+  }
+  for (const linea of [`${c.edicion} · ${c.codigo} · ${c.fecha.slice(0, 4)}`, textoColor(c.colores)]) {
+    datos.append(document.createElement('br'), linea);
+  }
+  datos.hidden = false;
   $('btn-resolver').disabled = true;
 });
 

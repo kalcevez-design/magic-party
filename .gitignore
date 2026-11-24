@@ -1,3 +1,15 @@
+# Sistema
 .DS_Store
 Thumbs.db
+
+# Configuración local y secretos (por si se añaden en el futuro)
 .claude/settings.local.json
+.env
+.env.*
+*.pem
+*.key
+
+# Dependencias y editores
+node_modules/
+.vscode/
+.idea/
